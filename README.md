@@ -1,83 +1,98 @@
-# Image Guard AI
+---
+title: Image Guard AI - Deepfake & Authenticity Forensics
+emoji: 🛡️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
 
-**Image Guard AI** is a web-based system that verifies the authenticity of any fake images by giving a score.  
-It ensures that submitted photos are **genuine, untampered, and truly captured from distinct physical locations**.  
-The system leverages **deep learning (EfficientNet with Keras)**, **computer vision**, **metadata analysis**, **OCR**, **clustering**, and **fraud scoring** to provide a reliable detection solution.
+# 🛡️ Image Guard AI — Forensic & Explainable AI (XAI) Suite v3.0
+
+> **Research-Oriented Deepfake, AI-Generated Image & Tampering Forensics Engine**
+
+Image Guard AI is a high-performance, web-based forensic verification system that exposes deepfakes, AI image generation artifacts (Stable Diffusion, Midjourney, Flux, GANs), and digital manipulations.
 
 ---
 
-## Features
-- **Deep Learning Authenticity Check**  
-  Uses **EfficientNet (Keras + TensorFlow)** to detect image tampering.  
-- **Metadata & EXIF Analysis**  
-  Extracts device info, timestamps, and GPS data for validation.  
-- **OCR (Optical Character Recognition)**  
-  Reads and compares text from the board using **Tesseract OCR**.  
-- **Depth & Image Analysis**  
-  Evaluates scene depth and pixel-level features using **OpenCV + NumPy**.  
-- **Clustering for Location Verification**  
-  Groups images by visual/metadata similarity with **scikit-learn**.  
-- **Fraud Scoring System**  
-  Scores each image as **Authentic**, **Tampered**, or **Verification Failed**.  
-- **Database Integration**  
-  Stores results in **SQLite** (via SQLAlchemy).  
-- **Results Dashboard**  
-  Displays uploaded images, verification status, analysis results, and map links for geotagged photos.  
+## 🚀 Free 1-Click Cloud Deployment Options (100% Free Forever)
+
+### Option 1: Hugging Face Spaces (Recommended for AI Projects)
+**Specs:** 16 GB RAM • 2 vCPUs • 100% Free • No Credit Card Required
+1. Go to **[huggingface.co/new-space](https://huggingface.co/new-space)**
+2. Set Space Name: `ImageGuardAI`
+3. License: `MIT`
+4. Select Space SDK: **Docker** (Blank)
+5. Under Space Hardware: Keep the default **CPU Basic (Free - 2 vCPU, 16GB RAM)**
+6. Click **Create Space**
+7. Connect your GitHub repository:
+   - Go to your Space's **Settings** > **Repository** > Connect to GitHub: `nagasumukh01/ImageDeepfakeXAI`
+   - *Or push via git*:
+     ```bash
+     git remote add hf https://huggingface.co/spaces/<YOUR-USERNAME>/ImageGuardAI
+     git push -u hf main
+     ```
+8. Hugging Face will automatically build the `Dockerfile` and give you a live HTTPS public URL (`https://<username>-imageguardai.hf.space`)!
 
 ---
 
-## Tech Stack
-
-### Core Frameworks & Languages
-- **Python 3.9+**
-- **FastAPI** → Backend API framework  
-- **HTML, CSS, Jinja2** → Frontend templates  
-- **SQLite** → Database  
-
-### Deep Learning & AI
-- **Keras** → Model handling  
-- **TensorFlow** → Backend engine  
-- **EfficientNet** → Pretrained CNN for image authenticity detection  
-
-### Computer Vision & Image Processing
-- **OpenCV** → Image analysis & preprocessing  
-- **Pillow (PIL)** → Image handling  
-- **NumPy** → Numerical computations  
-
-### OCR & Metadata
-- **pytesseract** → OCR (text extraction)  
-- **piexif / exifread** → Metadata & EXIF handling  
-
-### Machine Learning / Clustering
-- **scikit-learn** → Clustering, similarity checks  
-
-### Utilities
-- **uvicorn** → ASGI server for FastAPI  
-- **sqlalchemy** → ORM for database operations  
-- **python-multipart** → File uploads  
-- **jinja2** → Template rendering  
+### Option 2: Render.com (Free Web Service)
+**Specs:** Free Tier Web Service
+1. Go to **[dashboard.render.com](https://dashboard.render.com)** and sign in with GitHub.
+2. Click **New +** > **Web Service**.
+3. Select your repository: `nagasumukh01/ImageDeepfakeXAI`.
+4. Render will automatically detect the settings from `render.yaml`:
+   - **Environment:** `Python` (or `Docker`)
+   - **Build Command:** `pip install -U pip && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt`
+   - **Start Command:** `uvicorn app:app --host 0.0.0.0 --port $PORT`
+5. Click **Create Web Service** (Free). Your site will be live at `https://image-guard-ai.onrender.com`.
 
 ---
 
-## Python Package List
-Your `requirements.txt` should include (with versions as per your environment):
+### Option 3: Local or Self-Hosted Docker
+Run anywhere with Docker installed:
+```bash
+docker build -t image-guard-ai .
+docker run -p 8000:7860 image-guard-ai
+```
+Visit `http://localhost:8000`.
 
-```txt
-fastapi
-uvicorn
-sqlalchemy
-python-multipart
-jinja2
+---
 
-numpy
-opencv-python
-pillow
+## 🔬 10-Layer Explainable AI (XAI) Forensics Suite
 
-tensorflow
-keras
-efficientnet
+| Module | Method | Scientific Principle | Tampering Indicator |
+|---|---|---|---|
+| **1. Grad-CAM** | Gradient-Weighted Class Activation Mapping | CNN layer activations | Highlights manipulated spatial regions |
+| **2. Error Level Analysis (ELA)** | Differential Re-compression Analysis | JPEG compression error delta | Bright zones indicate non-matching compression |
+| **3. 2D FFT Spectrum** | 2D Fast Fourier Transform | Frequency domain artifact analysis | Grid stars and abnormal high-frequency peaks |
+| **4. Noise Variance (PRNU)** | Sensor Pattern Noise Homogeneity | Camera sensor noise consistency | Noise discontinuity between foreground/background |
+| **5. DCT Block Grid** | 8×8 JPEG Discrete Cosine Transform | Grid-aligned gradient variance | Spliced regions lack matching JPEG grid boundaries |
+| **6. LBP Texture Anomaly** | Local Binary Patterns Micro-texture | Texture entropy distribution | AI generators create unnatural micro-texture smoothing |
+| **7. Chroma Divergence** | YCbCr Color Inconsistency | Chrominance channel cross-ratio | AI diffusion models exhibit chrominance bleeding |
+| **8. Copy-Move Forgery** | SIFT / ORB Keypoint Block Matching | Feature descriptor clustering | Duplicate cloned elements within the same image |
+| **9. GHOST Forensics** | Generalized Higher-Order Statistics | Multi-quality JPEG residual difference | Reveals original compression quality of spliced regions |
+| **10. Provenance & Metadata** | EXIF, GPS & OCR Verification | Hardware signature & temporal data | Device tags, GPS coordinate mapping & timestamp validation |
 
-scikit-learn
-pytesseract
-exifread
-piexif
+---
+
+## 🛠️ Local Development & Running
+
+1. **Clone repository:**
+   ```bash
+   git clone https://github.com/nagasumukh01/ImageDeepfakeXAI.git
+   cd ImageDeepfakeXAI
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Launch the server:**
+   ```bash
+   uvicorn app:app --reload --port 8000
+   ```
+   Open `http://127.0.0.1:8000` in your browser.
