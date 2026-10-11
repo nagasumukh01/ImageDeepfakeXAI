@@ -1,0 +1,44 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Database
+database.db
+
+# Uploaded user images (don't commit private uploads)
+uploads/
+!uploads/.gitkeep
+
+# Generated XAI output images
+static/xai/
+!static/xai/.gitkeep
+
+# Generated map
+static/map.html
+
+# Backup files
+*.bak
+temp_ela.jpg
+
+# Temp files
+temp.py
+test_pipeline_v3.py
+test_edge_cases.py
+test_full_pipeline.py
+test_ocr.py
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

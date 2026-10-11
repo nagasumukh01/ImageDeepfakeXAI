@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forensic Results & XAI Report | Image Guard AI</title>
+    <meta name="description" content="10-layer Explainable AI deepfake and image tampering forensics report with Grad-CAM, ELA, FFT, DCT, LBP, Chroma, Copy-Move and GHOST analysis.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #080c14;
+            --bg-card: rgba(14, 22, 38, 0.88);
+            --card-border: rgba(99, 102, 241, 0.22);
+            --accent-primary: #6366f1;
+            --accent-secondary: #06b6d4;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+            --accent-gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            --text-primary: #f0f4ff;
+            --text-secondary: #8896b0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99,102,241,0.14) 0px, transparent 55%),
+                radial-gradient(at 100% 100%, rgba(6,182,212,0.11) 0px, transparent 55%),
+                radial-gradient(at 50% 50%, rgba(16,185,129,0.04) 0px, transparent 70%);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(8, 12, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(99,102,241,0.15);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.35rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            box-shadow: 0 16px 40px -12px rgba(0,0,0,0.6);
+            overflow: hidden;
+            margin-bottom: 1.75rem;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(99,102,241,0.45);
+            box-shadow: 0 20px 50px -12px rgba(0,0,0,0.75);
+        }
+
+        .section-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+        }
+
+        .status-badge-verified {
+            background: rgba(16,185,129,0.15); color: #34d399;
+            border: 1px solid rgba(16,185,129,0.38);
+        }
+        .status-badge-suspicious {
+            background: rgba(245,158,11,0.15); color: #fbbf24;
+            border: 1px solid rgba(245,158,11,0.38);
+        }
+        .status-badge-rejected {
+            background: rgba(239,68,68,0.15); color: #f87171;
+            border: 1px solid rgba(239,68,68,0.38);
+        }
+
+        .metric-pill {
+            background: rgba(8, 12, 22, 0.75);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 0.9rem 0.75rem;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .metric-pill:hover { border-color: rgba(99,102,241,0.35); }
+        .metric-pill .label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+        .metric-pill .value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .metric-pill .unit {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* XAI Panel Grid */
+        .xai-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.85rem;
+        }
+
+        .xai-preview-box {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #020617;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-in;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .xai-preview-box:hover {
+            border-color: rgba(99,102,241,0.5);
+            box-shadow: 0 0 18px rgba(99,102,241,0.2);
+        }
+        .xai-preview-box img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+        .xai-preview-box:hover img { transform: scale(1.04); }
+        .xai-label-tag {
+            position: absolute;
+            bottom: 7px; left: 7px;
+            background: rgba(0,0,0,0.78);
+            backdrop-filter: blur(4px);
+            padding: 3px 9px;
+            border-radius: 7px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+        .xai-score-tag {
+            position: absolute;
+            top: 7px; right: 7px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #a5f3fc;
+            border: 1px solid rgba(6,182,212,0.3);
+        }
+
+        .reason-bullet {
+            font-size: 0.88rem;
+            padding: 0.55rem 0.8rem;
+            background: rgba(12, 18, 35, 0.65);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .provenance-box {
+            background: rgba(8, 14, 28, 0.7);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 1rem 1.1rem;
+            font-size: 0.84rem;
+        }
+        .provenance-box .prov-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .provenance-box .prov-row:last-child { border-bottom: none; }
+        .provenance-box .prov-label { color: var(--text-secondary); }
+        .provenance-box .prov-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: #38bdf8;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+
+        #global-map {
+            height: 360px; border-radius: 14px;
+            border: 1px solid var(--card-border); z-index: 1;
+        }
+
+        .risk-bar-track {
+            background: rgba(255,255,255,0.08);
+            border-radius: 99px; height: 10px; overflow: hidden;
+        }
+        .risk-bar-fill {
+            height: 100%; border-radius: 99px;
+            transition: width 0.6s ease;
+        }
+
+        /* Modal for XAI image fullscreen */
+        .xai-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.88); backdrop-filter: blur(8px);
+            z-index: 9999; align-items: center; justify-content: center;
+            cursor: zoom-out;
+        }
+        .xai-modal-overlay.active { display: flex; }
+        .xai-modal-overlay img {
+            max-width: 90vw; max-height: 90vh;
+            border-radius: 12px; box-shadow: 0 0 60px rgba(0,0,0,0.8);
+        }
+        .xai-modal-close {
+            position: absolute; top: 20px; right: 24px;
+            color: white; font-size: 2rem; cursor: pointer;
+            font-weight: 300; opacity: 0.8;
+        }
+        .xai-modal-close:hover { opacity: 1; }
+
+        .tab-pill {
+            background: rgba(15,23,42,0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            padding: 5px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-pill.active, .tab-pill:hover {
+            background: var(--accent-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .exec-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+
+        @media (max-width: 576px) {
+            .xai-panel-grid { grid-template-columns: repeat(2, 1fr); }
+            .exec-summary-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- XAI Image Fullscreen Modal -->
+    <div class="xai-modal-overlay" id="xai-modal" onclick="closeXaiModal()">
+        <span class="xai-modal-close">&times;</span>
+        <img id="xai-modal-img" src="" alt="XAI Forensic View">
+    </div>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg py-3">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-shield-halved me-2" style="color:#6366f1"></i>
+                Image Guard AI <span style="font-size:0.85rem; font-weight:400; color:#38bdf8;">Forensic Report</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <button onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
+                <a href="/" class="btn btn-sm rounded-pill px-3" style="background:var(--accent-gradient); border:none; color:white;">
+                    <i class="fas fa-plus me-1"></i> New Analysis
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        {% if error %}
+        <div class="alert alert-danger border-0 rounded-4 p-4 shadow-lg">
+            <h4 class="alert-heading"><i class="fas fa-circle-exclamation me-2"></i> Verification Error</h4>
+            <p class="mb-0">{{ error }}</p>
+            <div class="mt-3"><a href="/" class="btn btn-outline-danger btn-sm">Try Again</a></div>
+        </div>
+        {% else %}
+
+        <!-- Executive Summary Banner -->
+        <div class="glass-card p-4 mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="fw-bold mb-1">Explainable AI Forensic Verification Report</h2>
+                    <p class="text-secondary mb-2">
+                        <strong>{{ results|length }} image(s)</strong> analyzed across
+                        <strong>10 forensic dimensions</strong>:
+                        Grad-CAM, ELA, FFT, Noise PRNU, DCT, LBP, Chroma YCbCr, Copy-Move, GHOST + Spatial Provenance.
+                    </p>
+                    <!-- Summary counts -->
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% set verified_count = results | selectattr('status', 'equalto', 'Verified') | list | length %}
+                        {% set suspicious_count = results | selectattr('status', 'equalto', 'Suspicious') | list | length %}
+                        {% set rejected_count = results | selectattr('status', 'equalto', 'Rejected') | list | length %}
+                        <span class="badge status-badge-verified px-3 py-2 rounded-pill">
+                            <i class="fas fa-circle-check me-1"></i>{{ verified_count }} Verified
+                        </span>
+                        <span class="badge status-badge-suspicious px-3 py-2 rounded-pill">
+                            <i class="fas fa-triangle-exclamation me-1"></i>{{ suspicious_count }} Suspicious
+                        </span>
+                        <span class="badge status-badge-rejected px-3 py-2 rounded-pill">
+                            <i class="fas fa-circle-xmark me-1"></i>{{ rejected_count }} Rejected
+                        </span>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="text-secondary small mb-1">Research Engine v3.0</div>
+                    <div style="font-size:0.78rem; color:#4ade80;">
+                        <i class="fas fa-circle-dot fa-fade me-1"></i>All modules active
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geospatial Map Panel -->
+        {% set has_coords = false %}
+        {% for res in results %}{% if res.metadata.lat and res.metadata.lon %}{% set has_coords = true %}{% endif %}{% endfor %}
+        {% if has_coords %}
+        <div class="glass-card p-4 mb-4">
+            <h5 class="fw-bold mb-3">
+                <i class="fas fa-map-location-dot text-info me-2"></i> Geospatial Cluster Validation Map
+            </h5>
+            <div id="global-map"></div>
+        </div>
+        {% endif %}
+
+        <!-- Individual Image Diagnostic Cards -->
+        {% for res in results %}
+        <div class="glass-card p-4" id="result-{{ loop.index }}">
+
+            <!-- Card Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-start mb-3 pb-3" style="border-bottom:1px solid rgba(255,255,255,0.07)">
+                <div>
+                    <h4 class="fw-bold mb-1 text-white">
+                        <i class="fas fa-file-image me-2" style="color:#6366f1;"></i>{{ res.file }}
+                    </h4>
+                    <div class="text-secondary" style="font-size:0.82rem;">
+                        <span class="me-3"><i class="fas fa-camera me-1"></i>{{ res.metadata.device or 'Device Not Embedded' }}</span>
+                        <span><i class="fas fa-clock me-1"></i>{{ res.metadata.timestamp or 'Timestamp Not Embedded' }}</span>
+                    </div>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-2 mt-1">
+                    <span class="badge px-3 py-2 rounded-pill fs-6
+                        {% if res.status == 'Verified' %}status-badge-verified
+                        {% elif res.status == 'Suspicious' %}status-badge-suspicious
+                        {% else %}status-badge-rejected{% endif %}">
+                        <i class="fas
+                            {% if res.status == 'Verified' %}fa-circle-check
+                            {% elif res.status == 'Suspicious' %}fa-triangle-exclamation
+                            {% else %}fa-circle-xmark{% endif %} me-1"></i>
+                        {{ res.status }} · {{ (res.score * 100)|round(1) }}%
+                    </span>
+                    <!-- Authenticity risk bar -->
+                    <div style="width:180px;">
+                        <div class="d-flex justify-content-between mb-1" style="font-size:0.7rem;">
+                            <span class="text-secondary">Auth. Score</span>
+                            <span class="{% if res.score >= 0.7 %}text-success{% elif res.score >= 0.45 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ (res.score*100)|round(1) }}%
+                            </span>
+                        </div>
+                        <div class="risk-bar-track">
+                            <div class="risk-bar-fill" style="width:{{ (res.score*100)|round(1) }}%;
+                                background: {% if res.score >= 0.7 %}linear-gradient(90deg,#10b981,#34d399){% elif res.score >= 0.45 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#ef4444,#f87171){% endif %}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metrics Grid (10 indicators) -->
+            <p class="section-label mb-2"><i class="fas fa-chart-bar me-2"></i>Multi-Dimensional Forensic Score Matrix</p>
+            <div class="row g-2 mb-4">
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">Auth Score</div>
+                        <div class="value {% if res.score >= 0.7 %}text-success{% elif res.score >= 0.45 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ (res.score * 100)|round(1) }}<span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">Fake Risk</div>
+                        <div class="value {% if res.xai.fake_probability > 0.5 %}text-danger{% elif res.xai.fake_probability > 0.25 %}text-warning{% else %}text-success{% endif %}">
+                            {{ (res.xai.fake_probability * 100)|round(1) }}<span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">ELA Error</div>
+                        <div class="value text-info">{{ res.xai.ela_score }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">FFT Ratio</div>
+                        <div class="value text-violet-400" style="color:#a78bfa;">{{ res.xai.fft_ratio }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">DCT Block</div>
+                        <div class="value {% if res.xai.dct_score > 2.5 %}text-danger{% elif res.xai.dct_score > 1.5 %}text-warning{% else %}text-success{% endif %}">
+                            {{ res.xai.dct_score }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">LBP Anomaly</div>
+                        <div class="value {% if res.xai.lbp_anomaly > 0.55 %}text-danger{% elif res.xai.lbp_anomaly > 0.35 %}text-warning{% else %}text-success{% endif %}">
+                            {{ (res.xai.lbp_anomaly * 100)|round(1) }}<span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">Chroma Δ</div>
+                        <div class="value {% if res.xai.chroma_anomaly > 0.55 %}text-danger{% elif res.xai.chroma_anomaly > 0.3 %}text-warning{% else %}text-success{% endif %}">
+                            {{ (res.xai.chroma_anomaly * 100)|round(1) }}<span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">Copy-Move</div>
+                        <div class="value {% if res.xai.copy_move_score > 0.30 %}text-danger{% elif res.xai.copy_move_score > 0.10 %}text-warning{% else %}text-success{% endif %}">
+                            {{ (res.xai.copy_move_score * 100)|round(1) }}<span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">GHOST Δ</div>
+                        <div class="value {% if res.xai.ghost_anomaly > 0.55 %}text-danger{% elif res.xai.ghost_anomaly > 0.30 %}text-warning{% else %}text-success{% endif %}">
+                            {{ (res.xai.ghost_anomaly * 100)|round(1) }}<span class="unit">%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-4 col-lg-2">
+                    <div class="metric-pill">
+                        <div class="label">Noise Var</div>
+                        <div class="value text-secondary">{{ res.xai.noise_variance }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- XAI Visual Panel Grid -->
+            <p class="section-label mb-2"><i class="fas fa-brain me-2" style="color:#6366f1;"></i>Explainable AI (XAI) Visual Diagnostic Maps <span class="text-muted fw-normal normal-case" style="font-size:0.7rem; text-transform:none;">(click to enlarge)</span></p>
+            <div class="xai-panel-grid mb-4">
+                <!-- Original -->
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.image_url }}')">
+                    <img src="{{ res.image_url }}" alt="Original" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-image me-1"></i>Original</span>
+                </div>
+                <!-- Grad-CAM -->
+                {% if res.xai.gradcam_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.gradcam_url }}')">
+                    <img src="{{ res.xai.gradcam_url }}" alt="Grad-CAM" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-fire me-1 text-warning"></i>Grad-CAM</span>
+                    <span class="xai-score-tag">Risk {{ (res.xai.fake_probability*100)|round(0)|int }}%</span>
+                </div>
+                {% endif %}
+                <!-- ELA -->
+                {% if res.xai.ela_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.ela_url }}')">
+                    <img src="{{ res.xai.ela_url }}" alt="ELA" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-layer-group me-1 text-info"></i>ELA</span>
+                    <span class="xai-score-tag">{{ res.xai.ela_score }}</span>
+                </div>
+                {% endif %}
+                <!-- FFT -->
+                {% if res.xai.fft_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.fft_url }}')">
+                    <img src="{{ res.xai.fft_url }}" alt="FFT" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-wave-square me-1 text-danger"></i>2D FFT</span>
+                    <span class="xai-score-tag">{{ res.xai.fft_ratio }}</span>
+                </div>
+                {% endif %}
+                <!-- DCT -->
+                {% if res.xai.dct_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.dct_url }}')">
+                    <img src="{{ res.xai.dct_url }}" alt="DCT Block" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-border-all me-1" style="color:#fb923c;"></i>DCT Block</span>
+                    <span class="xai-score-tag">{{ res.xai.dct_score }}</span>
+                </div>
+                {% endif %}
+                <!-- LBP -->
+                {% if res.xai.lbp_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.lbp_url }}')">
+                    <img src="{{ res.xai.lbp_url }}" alt="LBP Texture" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-texture me-1" style="color:#c084fc;"></i>LBP Texture</span>
+                    <span class="xai-score-tag">{{ (res.xai.lbp_anomaly*100)|round(0)|int }}%</span>
+                </div>
+                {% endif %}
+                <!-- Chroma -->
+                {% if res.xai.chroma_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.chroma_url }}')">
+                    <img src="{{ res.xai.chroma_url }}" alt="Chroma YCbCr" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-palette me-1 text-success"></i>YCbCr Chroma</span>
+                    <span class="xai-score-tag">{{ (res.xai.chroma_anomaly*100)|round(0)|int }}%</span>
+                </div>
+                {% endif %}
+                <!-- Copy-Move -->
+                {% if res.xai.copy_move_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.copy_move_url }}')">
+                    <img src="{{ res.xai.copy_move_url }}" alt="Copy-Move" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-clone me-1 text-warning"></i>Copy-Move</span>
+                    <span class="xai-score-tag">{{ (res.xai.copy_move_score*100)|round(0)|int }}%</span>
+                </div>
+                {% endif %}
+                <!-- GHOST -->
+                {% if res.xai.ghost_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.ghost_url }}')">
+                    <img src="{{ res.xai.ghost_url }}" alt="GHOST JPEG" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-ghost me-1" style="color:#f472b6;"></i>GHOST JPEG</span>
+                    <span class="xai-score-tag">{{ (res.xai.ghost_anomaly*100)|round(0)|int }}%</span>
+                </div>
+                {% endif %}
+                <!-- Noise -->
+                {% if res.xai.noise_url %}
+                <div class="xai-preview-box" onclick="openXaiModal('{{ res.xai.noise_url }}')">
+                    <img src="{{ res.xai.noise_url }}" alt="Noise PRNU" loading="lazy">
+                    <span class="xai-label-tag"><i class="fas fa-microchip me-1" style="color:#4ade80;"></i>Noise PRNU</span>
+                    <span class="xai-score-tag">{{ res.xai.noise_variance }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Forensic Evidence + Provenance -->
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <p class="section-label mb-2"><i class="fas fa-list-check me-2 text-success"></i>Forensic Evidence & Findings ({{ res.reason|length }} signals)</p>
+                    {% for r in res.reason %}
+                    <div class="reason-bullet text-white">
+                        <i class="fas fa-angle-right me-2" style="color:#6366f1;"></i>{{ r }}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-lg-5">
+                    <p class="section-label mb-2"><i class="fas fa-tag me-2 text-warning"></i>Technical Provenance</p>
+                    <div class="provenance-box">
+                        <div class="prov-row">
+                            <span class="prov-label">Location Method</span>
+                            <span class="prov-value">{{ res.location_method }}</span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">GPS Coordinates</span>
+                            <span class="prov-value">
+                                {% if res.metadata.lat and res.metadata.lon %}
+                                {{ res.metadata.lat }}, {{ res.metadata.lon }}
+                                {% else %}Not Available{% endif %}
+                            </span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">Spatial Cluster</span>
+                            <span class="prov-value">{{ res.cluster if res.cluster != -1 else 'N/A' }}</span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">Structural Depth</span>
+                            <span class="prov-value">{{ res.depth }}</span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">Noise Variance</span>
+                            <span class="prov-value">{{ res.xai.noise_variance }}</span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">DCT Block Ratio</span>
+                            <span class="prov-value">{{ res.xai.dct_score }}</span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">GHOST Anomaly</span>
+                            <span class="prov-value">{{ res.xai.ghost_anomaly }}</span>
+                        </div>
+                        <div class="prov-row">
+                            <span class="prov-label">XAI Verdict</span>
+                            <span class="prov-value" style="color:{% if res.status == 'Verified' %}#34d399{% elif res.status == 'Suspicious' %}#fbbf24{% else %}#f87171{% endif %};">
+                                {{ res.xai.verdict }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Leaflet Map Script -->
+    <script>
+        {% if has_coords %}
+        document.addEventListener("DOMContentLoaded", function() {
+            const mapContainer = document.getElementById('global-map');
+            if (!mapContainer) return;
+            const coordsList = [];
+            {% for res in results %}
+                {% if res.metadata.lat and res.metadata.lon %}
+                coordsList.push({
+                    lat: {{ res.metadata.lat }},
+                    lon: {{ res.metadata.lon }},
+                    title: "{{ res.file }}",
+                    status: "{{ res.status }}",
+                    score: {{ (res.score * 100)|round(1) }}
+                });
+                {% endif %}
+            {% endfor %}
+            if (coordsList.length > 0) {
+                const map = L.map('global-map').setView([coordsList[0].lat, coordsList[0].lon], 14);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+                }).addTo(map);
+                const bounds = [];
+                const statusColors = { Verified: '#10b981', Suspicious: '#f59e0b', Rejected: '#ef4444' };
+                coordsList.forEach(pt => {
+                    const marker = L.circleMarker([pt.lat, pt.lon], {
+                        radius: 10, color: statusColors[pt.status] || '#6366f1',
+                        fillColor: statusColors[pt.status] || '#6366f1', fillOpacity: 0.85
+                    }).addTo(map);
+                    marker.bindPopup(`<b>${pt.title}</b><br>Status: ${pt.status} (${pt.score}%)`);
+                    bounds.push([pt.lat, pt.lon]);
+                });
+                if (bounds.length > 1) map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        });
+        {% endif %}
+
+        // XAI Modal functions
+        function openXaiModal(src) {
+            document.getElementById('xai-modal-img').src = src;
+            document.getElementById('xai-modal').classList.add('active');
+        }
+        function closeXaiModal() {
+            document.getElementById('xai-modal').classList.remove('active');
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeXaiModal();
+        });
+    </script>
+</body>
+</html>
